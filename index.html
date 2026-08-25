@@ -1,0 +1,1039 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="JARVIS">
+<meta name="theme-color" content="#0A0D11">
+<title>JARVIS SCIENTIST — Advanced Scientific Research System</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap');
+
+  :root{
+    --bg: #0A0D11;
+    --bg-panel: #10151B;
+    --bg-panel-2: #141B22;
+    --bg-raised: #182029;
+    --line: #1F2932;
+    --line-bright: #2E3B46;
+    --text: #E4EAEE;
+    --text-dim: #8B99A6;
+    --text-faint: #57646F;
+    --accent: #4C8DFF;
+    --accent-soft: rgba(76,141,255,0.12);
+    --positive: #6FE0C0;
+    --positive-soft: rgba(111,224,192,0.1);
+    --amber: #E3A34E;
+    --amber-soft: rgba(227,163,78,0.1);
+    --violet: #A594E8;
+    --violet-soft: rgba(165,148,232,0.1);
+    --coral: #E3766F;
+    --coral-soft: rgba(227,118,111,0.1);
+    --radius-sm: 5px;
+    --radius: 9px;
+    --radius-lg: 14px;
+    --sidebar-w: 232px;
+    --sidebar-w-collapsed: 68px;
+  }
+
+  *{ box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color: transparent; }
+  html,body{ height:100%; overscroll-behavior:none; }
+  body{
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', -apple-system, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+  }
+  .display{ font-family:'Space Grotesk', sans-serif; }
+  .mono{ font-family:'IBM Plex Mono', monospace; }
+  button, input, select, textarea{ font-family: inherit; color: inherit; }
+  button{ cursor:pointer; background:none; border:none; }
+  ::selection{ background: var(--accent-soft); }
+  a{ color: var(--accent); text-decoration:none; }
+
+  /* subtle ambient grid on the deep background */
+  body::before{
+    content:''; position:fixed; inset:0; z-index:0; pointer-events:none;
+    background-image: linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px);
+    background-size: 48px 48px; opacity: 0.15;
+  }
+
+  .eyebrow{ font-family:'IBM Plex Mono',monospace; font-size:10.5px; letter-spacing:0.12em; text-transform:uppercase; color: var(--text-faint); }
+  .badge{
+    display:inline-flex; align-items:center; gap:5px; font-family:'IBM Plex Mono',monospace;
+    font-size:10px; letter-spacing:0.06em; text-transform:uppercase; padding:3px 8px 3px 7px;
+    border-radius:20px; border:1px solid var(--line-bright); color: var(--text-dim); white-space:nowrap;
+  }
+  .badge .dot{ width:5px; height:5px; border-radius:50%; background: currentColor; }
+  .badge.demo{ color: var(--amber); border-color: rgba(227,163,78,0.35); background: var(--amber-soft); }
+  .badge.online{ color: var(--positive); border-color: rgba(111,224,192,0.35); background: var(--positive-soft); }
+  .badge.violet{ color: var(--violet); border-color: rgba(165,148,232,0.35); background: var(--violet-soft); }
+
+  /* ---------- APP SHELL ---------- */
+  #app{ position:relative; z-index:1; display:flex; height:100vh; height:100dvh; }
+
+  /* Sidebar — fixed rail on tablet/notebook/desktop, slide-in drawer on phone */
+  #sidebar{
+    width: var(--sidebar-w); flex-shrink:0; background: var(--bg-panel);
+    border-right:1px solid var(--line); display:flex; flex-direction:column;
+    transition: width 0.22s ease; overflow:hidden;
+  }
+  #sidebar.collapsed{ width: var(--sidebar-w-collapsed); }
+
+  #sidebarOverlay{ position:fixed; inset:0; background:rgba(6,9,12,0.6); z-index:39; display:none; }
+  #sidebarOverlay.open{ display:block; }
+
+  @media (max-width: 767px){
+    #sidebar{
+      position:fixed; top:0; left:0; bottom:0; z-index:40; width: min(78vw, 280px);
+      transform: translateX(-100%); transition: transform 0.22s ease; border-right:1px solid var(--line-bright);
+    }
+    #sidebar.mobile-open{ transform: translateX(0); }
+    #sidebar.collapsed{ width: min(78vw, 280px); } /* collapse state is meaningless on phone — always full drawer */
+    #sidebar.collapsed .sb-item span.label,
+    #sidebar.collapsed .sb-brand .name{ display:block; }
+    #sidebar.collapsed .sb-item{ justify-content:flex-start; }
+    .sb-hide-mobile{ display:none !important; }
+  }
+  @media (min-width: 768px){ .sb-mobile-toggle{ display:none !important; } }
+  .sb-brand{
+    display:flex; align-items:center; gap:10px; padding:18px 16px; border-bottom:1px solid var(--line);
+    flex-shrink:0; min-height:64px;
+  }
+  .sb-brand .mark{
+    width:30px; height:30px; border-radius:8px; background: linear-gradient(135deg, var(--accent), var(--violet));
+    flex-shrink:0; display:flex; align-items:center; justify-content:center;
+    font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:13px; color:#06090C;
+  }
+  .sb-brand .name{ font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:14.5px; white-space:nowrap; }
+  .sb-brand .name span{ color: var(--text-dim); font-weight:500; }
+  #sidebar.collapsed .sb-brand .name{ display:none; }
+
+  .sb-nav{ flex:1; overflow-y:auto; padding: 10px 10px; }
+  .sb-item{
+    display:flex; align-items:center; gap:12px; width:100%; padding:10px 12px; border-radius:var(--radius-sm);
+    color: var(--text-dim); font-size:13px; font-weight:500; margin-bottom:2px; text-align:left;
+    transition: background 0.15s, color 0.15s; white-space:nowrap;
+  }
+  .sb-item:hover{ background: var(--bg-raised); color: var(--text); }
+  .sb-item.active{ background: var(--accent-soft); color: var(--accent); }
+  .sb-item .ic{ width:17px; height:17px; flex-shrink:0; display:flex; align-items:center; justify-content:center; }
+  .sb-item .ic svg{ width:100%; height:100%; }
+  #sidebar.collapsed .sb-item span.label{ display:none; }
+  #sidebar.collapsed .sb-item{ justify-content:center; }
+
+  .sb-foot{ padding:12px 10px; border-top:1px solid var(--line); flex-shrink:0; }
+  .sb-toggle{
+    display:flex; align-items:center; gap:10px; width:100%; padding:9px 12px; border-radius:var(--radius-sm);
+    color: var(--text-faint); font-size:12px;
+  }
+  .sb-toggle:hover{ background: var(--bg-raised); color: var(--text-dim); }
+
+  /* Main column */
+  #main{ flex:1; display:flex; flex-direction:column; min-width:0; }
+
+  /* Topbar */
+  #topbar{
+    display:flex; align-items:center; justify-content:space-between; gap:16px;
+    padding: 14px 24px; border-bottom:1px solid var(--line); flex-shrink:0; background: rgba(10,13,17,0.7);
+    backdrop-filter: blur(8px);
+  }
+  .tb-left{ display:flex; align-items:center; gap:14px; min-width:0; }
+  .tb-title{ font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:16px; white-space:nowrap; }
+  .tb-meta{ display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+  .tb-stat{ font-family:'IBM Plex Mono',monospace; font-size:11px; color: var(--text-faint); display:flex; gap:5px; align-items:center; }
+  .tb-stat b{ color: var(--text-dim); font-weight:500; }
+  .tb-right{ display:flex; align-items:center; gap:10px; flex-shrink:0; }
+  .sb-mobile-toggle{ width:34px; height:34px; border-radius:var(--radius-sm); display:flex; align-items:center; justify-content:center; color:var(--text-dim); flex-shrink:0; }
+  .sb-mobile-toggle:hover{ background: var(--bg-raised); }
+  @media (max-width: 767px){
+    #topbar{ padding:12px 14px; }
+    .tb-title{ font-size:14.5px; }
+    .tb-stat:not(:first-child){ display:none; } /* keep topbar from wrapping to 3 lines on a phone */
+  }
+  @media (min-width: 768px) and (max-width: 1023px){ #topbar{ padding:13px 18px; } }
+
+  /* Content area */
+  #content{ flex:1; overflow-y:auto; padding: 24px; }
+  @media (max-width: 767px){ #content{ padding:14px; } }
+  @media (min-width: 768px) and (max-width: 1023px){ #content{ padding:18px; } }
+  @media (min-width: 1920px){ #content{ padding:28px 40px; } }
+
+  .page{ animation: fadein 0.28s ease; max-width: 1400px; }
+  @media (min-width: 1920px){ .page{ max-width: 1600px; margin:0 auto; } }
+  @keyframes fadein{ from{ opacity:0; transform: translateY(6px);} to{ opacity:1; transform:none; } }
+
+  .page-head{ margin-bottom:22px; }
+  .page-head h1{ font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:22px; margin-bottom:6px; }
+  .page-head p{ color: var(--text-dim); font-size:13px; max-width: 62ch; }
+
+  /* Cards / grids — fluid, responds to real available width rather than a fixed per-device column count */
+  .grid{ display:grid; gap:14px; }
+  .grid.cols-6{ grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+  .grid.cols-3{ grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+  .grid.cols-2{ grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+  @media (max-width: 480px){ .grid.cols-6, .grid.cols-3, .grid.cols-2{ grid-template-columns: 1fr; } }
+
+  .card{
+    background: var(--bg-panel); border:1px solid var(--line); border-radius: var(--radius);
+    padding: 16px; transition: border-color 0.15s, transform 0.15s;
+  }
+  .card:hover{ border-color: var(--line-bright); }
+  .stat-card .eyebrow{ margin-bottom:10px; }
+  .stat-card .value{ font-family:'Space Grotesk',sans-serif; font-size:28px; font-weight:600; margin-bottom:4px; }
+  .stat-card .foot{ font-size:11.5px; color: var(--text-faint); }
+
+  .section-label{
+    font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:0.1em; text-transform:uppercase;
+    color: var(--text-faint); margin: 26px 0 12px; display:flex; align-items:center; gap:10px;
+  }
+  .section-label::after{ content:''; flex:1; height:1px; background: var(--line); }
+  .section-label:first-child{ margin-top:0; }
+
+  /* Strategy / source / discovery cards */
+  .strategy-card{ display:flex; flex-direction:column; gap:10px; }
+  .strategy-card .head{ display:flex; justify-content:space-between; align-items:flex-start; gap:10px; }
+  .strategy-card .title{ font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:15.5px; }
+  .strategy-card .mech{ font-size:12.5px; color: var(--text-dim); line-height:1.5; }
+  .kv-row{ display:flex; justify-content:space-between; font-size:11.5px; padding:5px 0; border-top:1px solid var(--line); }
+  .kv-row .k{ color: var(--text-faint); font-family:'IBM Plex Mono',monospace; text-transform:uppercase; letter-spacing:0.04em; font-size:10px; }
+  .kv-row .v{ color: var(--text-dim); font-family:'IBM Plex Mono',monospace; }
+
+  table{ width:100%; border-collapse:collapse; }
+  th{ text-align:left; font-family:'IBM Plex Mono',monospace; font-size:10.5px; letter-spacing:0.08em; text-transform:uppercase; color: var(--text-faint); padding:10px 12px; border-bottom:1px solid var(--line-bright); }
+  td{ padding:12px; border-bottom:1px solid var(--line); font-size:13px; }
+  tr:last-child td{ border-bottom:none; }
+  .rank-table{ background: var(--bg-panel); border:1px solid var(--line); border-radius: var(--radius); overflow:hidden; }
+
+  /* Evidence badges E0-E6 */
+  .ev-badge{ font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:600; padding:3px 8px; border-radius:4px; display:inline-block; }
+  .ev-0{ background: rgba(87,100,111,0.15); color: var(--text-faint); }
+  .ev-1{ background: var(--violet-soft); color: var(--violet); }
+  .ev-2{ background: var(--amber-soft); color: var(--amber); }
+  .ev-3{ background: var(--amber-soft); color: var(--amber); }
+  .ev-4{ background: var(--accent-soft); color: var(--accent); }
+  .ev-5{ background: var(--positive-soft); color: var(--positive); }
+  .ev-6{ background: var(--positive-soft); color: var(--positive); }
+
+  /* HIV Map — signature element */
+  .hivmap-wrap{ display:flex; gap:22px; }
+  .hivmap-pipeline{ display:flex; flex-direction:column; gap:0; flex-shrink:0; width: 280px; }
+  .hivmap-stage{
+    display:flex; align-items:center; gap:12px; padding:13px 14px; border-radius:var(--radius-sm);
+    border:1px solid transparent; text-align:left; position:relative;
+  }
+  .hivmap-stage:hover{ background: var(--bg-raised); }
+  .hivmap-stage.active{ background: var(--accent-soft); border-color: rgba(76,141,255,0.3); }
+  .hivmap-stage .n{ font-family:'IBM Plex Mono',monospace; font-size:10px; color: var(--text-faint); width:18px; flex-shrink:0; }
+  .hivmap-stage.active .n{ color: var(--accent); }
+  .hivmap-stage .label{ font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:14px; }
+  .hivmap-connector{ width:1px; height:14px; background: var(--line-bright); margin-left:23px; }
+  .hivmap-detail{
+    flex:1; background: var(--bg-panel); border:1px solid var(--line); border-radius: var(--radius-lg); padding:26px;
+    min-height: 420px;
+  }
+  .hivmap-detail h2{ font-family:'Space Grotesk',sans-serif; font-size:20px; margin-bottom:8px; }
+  .hivmap-detail .desc{ color: var(--text-dim); font-size:13.5px; line-height:1.7; margin-bottom:20px; max-width:60ch; }
+  @media (max-width: 1023px){ .hivmap-wrap{ flex-direction:column; } .hivmap-pipeline{ width:100%; flex-direction:row; overflow-x:auto; padding-bottom:4px; } .hivmap-connector{ display:none; } .hivmap-stage{ flex-shrink:0; } .hivmap-detail{ min-height:280px; } }
+
+  /* Chat */
+  .chat-panel{ display:flex; flex-direction:column; height: 100%; min-height:420px; background: var(--bg-panel); border:1px solid var(--line); border-radius: var(--radius-lg); overflow:hidden; }
+  .chat-log{ flex:1; overflow-y:auto; padding: 20px; display:flex; flex-direction:column; gap:14px; min-height:0; }
+  .msg{ max-width: 78%; padding:12px 14px; border-radius: var(--radius); font-size:13.5px; line-height:1.6; }
+  .msg.user{ align-self:flex-end; background: var(--accent); color:#06090C; font-weight:500; }
+  .msg.jarvis{ align-self:flex-start; background: var(--bg-raised); border:1px solid var(--line-bright); }
+  .msg.jarvis .who{ font-family:'IBM Plex Mono',monospace; font-size:10px; color: var(--accent); letter-spacing:0.08em; margin-bottom:6px; display:block; }
+  .chat-input-row{ display:flex; gap:8px; padding:14px; border-top:1px solid var(--line); flex-shrink:0; align-items:flex-end; }
+  .chat-input-row textarea{
+    flex:1; background: var(--bg); border:1px solid var(--line-bright); border-radius: var(--radius-sm);
+    padding:11px 13px; resize:none; font-size:16px; max-height:100px;
+  }
+  /* font-size:16px above is deliberate — iOS Safari auto-zooms on inputs under 16px, which would break the layout */
+  .chat-input-row textarea:focus{ outline:2px solid var(--accent); outline-offset:-1px; }
+  .icon-btn{ width:38px; height:38px; border-radius: var(--radius-sm); border:1px solid var(--line-bright); display:flex; align-items:center; justify-content:center; color: var(--text-dim); flex-shrink:0; }
+  .icon-btn:hover{ background: var(--bg-raised); color: var(--text); }
+  .send-btn{ width:38px; height:38px; border-radius: var(--radius-sm); background: var(--accent); color:#06090C; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .send-btn:hover{ background:#6BA0FF; }
+  @media (max-width: 767px){ .msg{ max-width:88%; } .chat-input-row textarea{ padding:10px 12px; } }
+
+  /* forms */
+  .field{ margin-bottom:14px; }
+  .field label{ display:block; font-family:'IBM Plex Mono',monospace; font-size:10.5px; letter-spacing:0.06em; text-transform:uppercase; color: var(--text-faint); margin-bottom:6px; }
+  .field textarea, .field input[type=text], .field select{
+    width:100%; background: var(--bg); border:1px solid var(--line-bright); border-radius: var(--radius-sm);
+    padding: 11px 13px; font-size:13.5px;
+  }
+  .field textarea:focus, .field input:focus, .field select:focus{ outline:2px solid var(--accent); outline-offset:-1px; }
+  .btn-primary{ background: var(--accent); color:#06090C; padding:11px 20px; border-radius: var(--radius-sm); font-weight:600; font-size:13px; }
+  .btn-primary:hover{ background:#6BA0FF; }
+  .btn-secondary{ border:1px solid var(--line-bright); color: var(--text-dim); padding:10px 18px; border-radius: var(--radius-sm); font-size:13px; }
+  .btn-secondary:hover{ color: var(--text); border-color: var(--text-dim); }
+
+  .empty-state{ text-align:center; padding: 60px 20px; color: var(--text-faint); }
+  .empty-state .ic{ font-size:26px; margin-bottom:10px; }
+  .empty-state p{ font-size:13px; max-width:40ch; margin:0 auto; }
+
+  /* ---------- HOME BENTO LAYOUT (Scientific Command Center) ---------- */
+  .bento{ display:flex; flex-direction:column; gap:14px; }
+  .bento-row{ display:flex; flex-direction:column; gap:14px; }
+  .bento-main{ min-width:0; }
+  .bento-side{ min-width:0; }
+
+  /* From tablet/notebook width up, the assistant/status and map/ranking rows go two-up,
+     with the primary panel wider than the side panel — matches the reference command-center layout. */
+  @media (min-width: 1024px){
+    .bento-row{ flex-direction:row; align-items:stretch; }
+    .bento-main{ flex: 1.7 1 0; }
+    .bento-side{ flex: 1 1 0; }
+  }
+
+  .side-panel{ background: var(--bg-panel); border:1px solid var(--line); border-radius: var(--radius-lg); padding:20px; height:100%; }
+  .status-row{ display:flex; justify-content:space-between; align-items:center; padding:11px 0; border-bottom:1px solid var(--line); font-size:12.5px; }
+  .status-row:last-child{ border-bottom:none; }
+  .status-row .k{ color: var(--text-dim); }
+  .status-row .v{ font-family:'IBM Plex Mono',monospace; color: var(--text-faint); font-size:11.5px; }
+
+  .preview-list{ display:flex; flex-direction:column; gap:2px; }
+  .preview-row{ display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid var(--line); font-size:12.5px; }
+  .preview-row:last-child{ border-bottom:none; }
+  .see-more{ display:inline-flex; align-items:center; gap:5px; font-family:'IBM Plex Mono',monospace; font-size:11px; color: var(--accent); margin-top:12px; letter-spacing:0.04em; text-transform:uppercase; }
+
+  .hivmap-preview-pipeline{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
+  .mini-stage{ font-family:'IBM Plex Mono',monospace; font-size:10.5px; color: var(--text-dim); border:1px solid var(--line-bright); border-radius:20px; padding:5px 10px; }
+  .mini-stage.active{ color: var(--accent); border-color: rgba(76,141,255,0.4); background: var(--accent-soft); }
+
+  @media (max-width: 767px){ .side-panel{ padding:16px; } }
+
+  /* Drawer (side panel for HIV stage / evidence detail) */
+  .drawer-overlay{ position:fixed; inset:0; background: rgba(6,9,12,0.6); z-index:50; display:none; }
+  .drawer-overlay.open{ display:block; }
+  .drawer{
+    position:fixed; top:0; right:0; bottom:0; width:min(420px,88vw); background: var(--bg-panel);
+    border-left:1px solid var(--line-bright); z-index:51; transform: translateX(100%); transition: transform 0.25s ease;
+    display:flex; flex-direction:column;
+  }
+  .drawer.open{ transform: translateX(0); }
+  .drawer-head{ display:flex; justify-content:space-between; align-items:center; padding:18px 20px; border-bottom:1px solid var(--line); }
+  .drawer-body{ padding:20px; overflow-y:auto; flex:1; }
+  .drawer-body h3{ font-family:'Space Grotesk',sans-serif; font-size:18px; margin-bottom:10px; }
+  .drawer-body .desc{ font-size:13px; color: var(--text-dim); line-height:1.7; margin-bottom:18px; }
+
+  /* Settings toggles */
+  .toggle-row{ display:flex; justify-content:space-between; align-items:center; padding:14px 0; border-bottom:1px solid var(--line); }
+  .toggle-row:last-child{ border-bottom:none; }
+  .toggle-row .t-label{ font-size:13.5px; font-weight:500; }
+  .toggle-row .t-desc{ font-size:12px; color: var(--text-faint); margin-top:2px; }
+  .switch{ width:40px; height:22px; border-radius:20px; background: var(--line-bright); position:relative; flex-shrink:0; }
+  .switch.on{ background: var(--accent); }
+  .switch::after{ content:''; position:absolute; top:2px; left:2px; width:18px; height:18px; border-radius:50%; background:#fff; transition: transform 0.15s; }
+  .switch.on::after{ transform: translateX(18px); }
+
+  /*
+    Sistema de breakpoints (responde à largura real, não ao nome do dispositivo):
+    < 768        MOBILE
+    768 – 1023   TABLET
+    1024 – 1279  LARGE TABLET / SMALL NOTEBOOK  (inclui iPad Pro 12.9" landscape, 1366×1024)
+    1280 – 1599  NOTEBOOK
+    1600 – 1919  LARGE NOTEBOOK / DESKTOP
+    >= 1920      DESKTOP / ULTRAWIDE (conteúdo central limitado, ver .page acima)
+  */
+  @media (min-width: 768px) and (max-width: 1023px){
+    .stat-card .value{ font-size:24px; }
+  }
+  @media (min-width: 1024px) and (max-width: 1279px){
+    #content{ padding:20px; }
+  }
+  @media (min-width: 1600px){
+    .grid.cols-6{ grid-template-columns: repeat(auto-fill, minmax(170px,1fr)); }
+  }
+  ::-webkit-scrollbar-thumb{ background: var(--line-bright); border-radius:4px; }
+  ::-webkit-scrollbar-track{ background:transparent; }
+
+  :focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+  @media (prefers-reduced-motion: reduce){ *{ animation:none !important; transition:none !important; } }
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div id="sidebarOverlay"></div>
+  <aside id="sidebar">
+    <div class="sb-brand">
+      <div class="mark">J</div>
+      <div class="name">JARVIS <span>SCIENTIST</span></div>
+    </div>
+    <nav class="sb-nav" id="sbNav"></nav>
+    <div class="sb-foot">
+      <button class="sb-toggle sb-hide-mobile" id="sbToggle">
+        <span class="ic">${'' /* filled by JS */}</span>
+      </button>
+    </div>
+  </aside>
+
+  <div id="main">
+    <header id="topbar"></header>
+    <main id="content"></main>
+  </div>
+</div>
+
+<div class="drawer-overlay" id="drawerOverlay"></div>
+<aside class="drawer" id="drawer">
+  <div class="drawer-head">
+    <span class="eyebrow" id="drawerEyebrow">DETALHE</span>
+    <button class="icon-btn" id="drawerClose" aria-label="Fechar">✕</button>
+  </div>
+  <div class="drawer-body" id="drawerBody"></div>
+</aside>
+
+<script>
+/* =========================================================================
+   JARVIS SCIENTIST — CAMADA 1
+   Interface + arquitetura + dados mock. Nenhum mecanismo científico real.
+   Vanilla JS SPA (sem build step) para rodar direto no Safari do iPad.
+   ========================================================================= */
+
+/* ---------- ICONS (inline SVG, stroke-based, consistent weight) ---------- */
+const ICONS = {
+  home: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v9a1 1 0 0 0 1 1H9v-6h6v6h2.5a1 1 0 0 0 1-1v-9"/></svg>',
+  research: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.3-4.3"/></svg>',
+  hivmap: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="5" r="2.2"/><circle cx="12" cy="19" r="2.2"/><circle cx="5" cy="12" r="2.2"/><circle cx="19" cy="12" r="2.2"/><path d="M12 7.2v3M12 13.8v3M7.2 12h3M13.8 12h3"/></svg>',
+  strategies: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 19V5m0 14 6-4 4 2.5L20 12"/></svg>',
+  simulations: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 12h4l2-7 4 14 2-7h4"/></svg>',
+  hypotheses: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.6 10.8c.6.45 1 1.15 1 1.9V16h5.2v-.3c0-.75.4-1.45 1-1.9A6 6 0 0 0 12 3Z"/></svg>',
+  evidence: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9 3h6l1 4H8l1-4Z"/><path d="M6.5 7h11l1.6 12.2a1.6 1.6 0 0 1-1.6 1.8H6.5a1.6 1.6 0 0 1-1.6-1.8L6.5 7Z"/></svg>',
+  sources: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 4h9l4 4v12a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1Z"/><path d="M15 4v4h4"/></svg>',
+  discoveries: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>',
+  lab: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9 3h6M10 3v6.5L4.8 18a1.6 1.6 0 0 0 1.4 2.4h11.6a1.6 1.6 0 0 0 1.4-2.4L14 9.5V3"/><path d="M7.5 15h9"/></svg>',
+  settings: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="3"/><path d="M19.4 13a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.9 2.9l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6V19.5a2 2 0 1 1-4 0V19.3a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.9-2.9l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.6-1H4.5a2 2 0 1 1 0-4h.2a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.9-2.9l.1.1a1.7 1.7 0 0 0 1.9.3H11a1.7 1.7 0 0 0 1-1.6V4.5a2 2 0 1 1 4 0v.2a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.9 2.9l-.1.1a1.7 1.7 0 0 0-.3 1.9V11a1.7 1.7 0 0 0 1.6 1h.2a2 2 0 1 1 0 4h-.2a1.7 1.7 0 0 0-1.6 1Z"/></svg>',
+  collapse: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M9.5 4.5v15"/><path d="M6.5 10l-1.5 2 1.5 2"/></svg>',
+  menu: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 7h16M4 12h16M4 17h16"/></svg>',
+  mic: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg>',
+  clip: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M8 12.5 15 5.5a3 3 0 0 1 4.2 4.2L11 18a4.5 4.5 0 0 1-6.4-6.4L13 3"/></svg>',
+  send: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 12l16-8-6 16-3-7-7-1Z"/></svg>',
+  bolt: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M13 3 5 14h6l-1 7 8-11h-6l1-7Z"/></svg>',
+};
+
+/* ---------- NAV ---------- */
+const NAV = [
+  {id:'home', label:'Home', icon:'home'},
+  {id:'research', label:'Research', icon:'research'},
+  {id:'hivmap', label:'HIV Map', icon:'hivmap'},
+  {id:'strategies', label:'Strategies', icon:'strategies'},
+  {id:'ranking', label:'Ranking', icon:'strategies'},
+  {id:'simulations', label:'Simulations', icon:'simulations'},
+  {id:'hypotheses', label:'Hypotheses', icon:'hypotheses'},
+  {id:'evidence', label:'Evidence', icon:'evidence'},
+  {id:'sources', label:'Sources', icon:'sources'},
+  {id:'discoveries', label:'Discoveries', icon:'discoveries'},
+  {id:'lab', label:'Lab', icon:'lab'},
+  {id:'settings', label:'Settings', icon:'settings'},
+];
+
+/* ---------- MOCK DATA (DEMO — architecture only, no real scientific values) ---------- */
+
+const EVIDENCE_LEVELS = [
+  {code:'E0', name:'No evidence', desc:'Nenhuma evidência disponível ainda — apenas especulação.'},
+  {code:'E1', name:'Theoretical hypothesis', desc:'Ideia biologicamente plausível, sem teste registrado.'},
+  {code:'E2', name:'In vitro', desc:'Testado em células, fora de um organismo vivo.'},
+  {code:'E3', name:'Animal model', desc:'Testado em modelo animal (ex: camundongos, macacos).'},
+  {code:'E4', name:'Early clinical evidence', desc:'Primeiros testes em humanos (geralmente Fase 1).'},
+  {code:'E5', name:'Strong clinical evidence', desc:'Resultado consistente em ensaios clínicos maiores.'},
+  {code:'E6', name:'Established evidence', desc:'Consenso científico amplo, tratamento validado.'},
+];
+
+const STRATEGIES = [
+  {id:'art', name:'ART', mechanism:'Bloqueia etapas da replicação viral, mantendo a carga viral suprimida.', evidence:'E6', stage:'Padrão de cuidado', potential:'PLACEHOLDER', confidence:'PLACEHOLDER'},
+  {id:'bnabs', name:'bNAbs', mechanism:'Anticorpos amplamente neutralizantes que reconhecem regiões conservadas do vírus.', evidence:'E4', stage:'Ensaios clínicos', potential:'PLACEHOLDER', confidence:'PLACEHOLDER'},
+  {id:'kk', name:'Kick and Kill', mechanism:'Reativa células com vírus latente para depois eliminá-las.', evidence:'E3', stage:'Pré-clínico / Fase 1', potential:'PLACEHOLDER', confidence:'PLACEHOLDER'},
+  {id:'bl', name:'Block and Lock', mechanism:'Reforça o silenciamento do vírus latente, em vez de reativá-lo.', evidence:'E2', stage:'Pré-clínico', potential:'PLACEHOLDER', confidence:'PLACEHOLDER'},
+  {id:'gene', name:'Gene Editing', mechanism:'Edição genética (ex: CRISPR) visando remover ou inativar DNA viral.', evidence:'E2', stage:'Pré-clínico', potential:'PLACEHOLDER', confidence:'PLACEHOLDER'},
+  {id:'cell', name:'Cell Therapy', mechanism:'Modificação de células do próprio paciente para resistir ou combater o vírus.', evidence:'E3', stage:'Ensaios iniciais', potential:'PLACEHOLDER', confidence:'PLACEHOLDER'},
+  {id:'cart', name:'CAR-T', mechanism:'Células T projetadas para reconhecer e destruir células infectadas.', evidence:'E4', stage:'Fase 1', potential:'PLACEHOLDER', confidence:'PLACEHOLDER'},
+  {id:'vaccine', name:'Therapeutic Vaccines', mechanism:'Estimula o sistema imune de quem já é infectado a controlar o vírus.', evidence:'E2', stage:'Pré-clínico / Fase 1', potential:'PLACEHOLDER', confidence:'PLACEHOLDER'},
+  {id:'immuno', name:'Immunotherapy', mechanism:'Moduladores do sistema imune para reforçar o combate ao reservatório.', evidence:'E3', stage:'Fase 1/2', potential:'PLACEHOLDER', confidence:'PLACEHOLDER'},
+  {id:'combo', name:'Combination Strategies', mechanism:'Soma de múltiplas estratégias acima, atacando o vírus por várias frentes.', evidence:'E2', stage:'Pré-clínico', potential:'PLACEHOLDER', confidence:'PLACEHOLDER'},
+];
+
+const HIV_STAGES = [
+  {id:'entry', name:'Entry', desc:'O vírus se liga a receptores da célula (CD4 e correceptores CCR5/CXCR4) e funde sua membrana com a dela para entrar.', targets:'CCR5, CXCR4, gp120/gp41', evidence:'E6'},
+  {id:'rt', name:'Reverse Transcription', desc:'O RNA viral é convertido em DNA pela enzima transcriptase reversa — etapa-alvo clássica do ART.', targets:'Transcriptase reversa', evidence:'E6'},
+  {id:'integration', name:'Integration', desc:'O DNA viral é inserido no DNA da célula hospedeira, formando o provírus — origem do reservatório latente.', targets:'Integrase', evidence:'E6'},
+  {id:'transcription', name:'Transcription', desc:'A célula infectada lê o DNA viral integrado e produz novo material genético e proteínas do vírus.', targets:'Fatores de transcrição do hospedeiro', evidence:'E5'},
+  {id:'assembly', name:'Assembly', desc:'Novas partículas virais são montadas dentro da célula infectada, reunindo RNA e proteínas.', targets:'Proteínas estruturais Gag/Pol', evidence:'E5'},
+  {id:'budding', name:'Budding', desc:'A nova partícula viral brota da membrana da célula, se preparando para infectar outras.', targets:'Via ESCRT do hospedeiro', evidence:'E4'},
+  {id:'maturation', name:'Maturation', desc:'A partícula viral sofre mudanças estruturais finais que a tornam infecciosa.', targets:'Protease viral', evidence:'E6'},
+];
+
+const SOURCE_FILTERS = ['HIV','Reservoir','Cure','bNAbs','Gene Editing','Cell Therapy','Immunotherapy','Clinical Trials'];
+const SOURCES = [
+  {title:'Structural basis for broadly neutralizing antibody induction', authors:'Autores — DEMO', year:'2026', journal:'Periódico — DEMO', tag:'bNAbs', evidence:'E3'},
+  {title:'CCR5 blockade limits reservoir seeding in acute infection', authors:'Autores — DEMO', year:'2026', journal:'Periódico — DEMO', tag:'Reservoir', evidence:'E3'},
+  {title:'CAR-T cell persistence following ART interruption', authors:'Autores — DEMO', year:'2025', journal:'Periódico — DEMO', tag:'Cell Therapy', evidence:'E4'},
+  {title:'Latency reversing agents: a systematic comparison', authors:'Autores — DEMO', year:'2025', journal:'Periódico — DEMO', tag:'Cure', evidence:'E2'},
+  {title:'CRISPR-based excision of integrated provirus', authors:'Autores — DEMO', year:'2024', journal:'Periódico — DEMO', tag:'Gene Editing', evidence:'E2'},
+];
+
+const DISCOVERIES = [
+  {title:'Combinação tripla reduz reservatório em modelo animal', date:'2026 — DEMO', source:'Fonte — PLACEHOLDER', evidence:'E3', impact:'PLACEHOLDER'},
+  {title:'Novo imunógeno induz anticorpos amplos em primatas', date:'2026 — DEMO', source:'Fonte — PLACEHOLDER', evidence:'E3', impact:'PLACEHOLDER'},
+  {title:'Ensaio de germline targeting avança para Fase 1', date:'2026 — DEMO', source:'Fonte — PLACEHOLDER', evidence:'E4', impact:'PLACEHOLDER'},
+];
+
+const DASHBOARD_CARDS = [
+  {label:'Active Research', value:'—', foot:'DEMO DATA'},
+  {label:'Sources', value:'—', foot:'DEMO DATA'},
+  {label:'Simulations', value:'—', foot:'DEMO DATA'},
+  {label:'Hypotheses', value:'—', foot:'DEMO DATA'},
+  {label:'Evidence', value:'—', foot:'DEMO DATA'},
+  {label:'Discoveries', value:'—', foot:'DEMO DATA'},
+];
+
+/* ---------- APP STATE ---------- */
+const state = {
+  route: 'home',
+  sidebarCollapsed: false,
+  activeHivStage: 'entry',
+  chatHistory: [
+    {who:'jarvis', text:'Central de pesquisa inicializada. Esta versão está operando em modo de demonstração — os dados científicos são placeholders até o mecanismo real ser conectado.'},
+  ],
+  settings: {
+    voiceModule: false,
+    advancedMode: false,
+    autoIndexSources: true,
+    lightTheme: false,
+  },
+};
+
+/* ---------- ROUTER / RENDER ---------- */
+function navigate(route){
+  state.route = route;
+  renderSidebar();
+  renderTopbar();
+  renderContent();
+}
+
+function renderSidebar(){
+  const nav = document.getElementById('sbNav');
+  nav.innerHTML = NAV.map(item => `
+    <button class="sb-item ${state.route===item.id?'active':''}" data-nav="${item.id}">
+      <span class="ic">${ICONS[item.icon]}</span>
+      <span class="label">${item.label}</span>
+    </button>
+  `).join('');
+  document.getElementById('sidebar').classList.toggle('collapsed', state.sidebarCollapsed);
+  document.getElementById('sbToggle').querySelector('.ic').innerHTML = ICONS.collapse;
+}
+
+function renderTopbar(){
+  const navItem = NAV.find(n=>n.id===state.route);
+  document.getElementById('topbar').innerHTML = `
+    <div class="tb-left">
+      <button class="sb-mobile-toggle" id="sbMobileToggle" aria-label="Abrir menu">${ICONS.menu}</button>
+      <div class="tb-title display">${navItem ? navItem.label : 'JARVIS'}</div>
+    </div>
+    <div class="tb-meta">
+      <span class="badge online"><span class="dot"></span>SYSTEM ONLINE</span>
+      <span class="badge demo"><span class="dot"></span>RESEARCH MODE: DEMO</span>
+      <span class="tb-stat">SOURCES <b>${SOURCES.length}</b></span>
+      <span class="tb-stat" id="clockStat">—</span>
+    </div>
+  `;
+  tickClock();
+}
+
+function tickClock(){
+  const el = document.getElementById('clockStat');
+  const el2 = document.getElementById('lastUpdateStat');
+  if(!el && !el2) return;
+  const now = new Date();
+  const stamp = now.toLocaleDateString('pt-BR') + ' · ' + now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  if(el) el.innerHTML = stamp;
+  if(el2) el2.textContent = stamp;
+}
+setInterval(()=>{ if(document.getElementById('clockStat')) tickClock(); }, 30000);
+
+function renderContent(){
+  const c = document.getElementById('content');
+  const renderers = {
+    home: pageHome, research: pageResearch, hivmap: pageHivMap, strategies: pageStrategies,
+    ranking: pageRanking, simulations: pageSimulations, hypotheses: pageHypotheses,
+    evidence: pageEvidence, sources: pageSources, discoveries: pageDiscoveries,
+    lab: pageLab, settings: pageSettings,
+  };
+  c.innerHTML = `<div class="page">${(renderers[state.route]||pageHome)()}</div>`;
+  bindPageEvents();
+}
+
+/* ---------- PAGES ---------- */
+
+function pageHome(){
+  return `
+    <div class="page-head">
+      <h1>Scientific Command Center</h1>
+      <p>Visão geral do estado atual da pesquisa. Todos os valores abaixo são dados de demonstração.</p>
+    </div>
+
+    <div class="bento">
+      <div class="grid cols-6">
+        ${DASHBOARD_CARDS.map(c => `
+          <div class="card stat-card">
+            <div class="eyebrow">${c.label.toUpperCase()}</div>
+            <div class="value">${c.value}</div>
+            <div class="foot"><span class="badge demo"><span class="dot"></span>${c.foot}</span></div>
+          </div>
+        `).join('')}
+      </div>
+
+      <div class="bento-row">
+        <div class="bento-main">
+          ${chatPanelHtml()}
+        </div>
+        <div class="bento-side">
+          ${researchStatusHtml()}
+        </div>
+      </div>
+
+      <div class="bento-row">
+        <div class="bento-main">
+          ${hivMapPreviewHtml()}
+        </div>
+        <div class="bento-side">
+          ${rankingPreviewHtml()}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function researchStatusHtml(){
+  return `
+    <div class="side-panel">
+      <div class="eyebrow" style="margin-bottom:14px">RESEARCH STATUS</div>
+      <div class="status-row"><span class="k">System</span><span class="badge online"><span class="dot"></span>ONLINE</span></div>
+      <div class="status-row"><span class="k">Research mode</span><span class="badge demo"><span class="dot"></span>DEMO</span></div>
+      <div class="status-row"><span class="k">Scientific data</span><span class="v">PLACEHOLDER</span></div>
+      <div class="status-row"><span class="k">Sources indexed</span><span class="v">${SOURCES.length}</span></div>
+      <div class="status-row"><span class="k">Active investigations</span><span class="v">0</span></div>
+      <div class="status-row"><span class="k">Last update</span><span class="v mono" id="lastUpdateStat">—</span></div>
+    </div>
+  `;
+}
+
+function hivMapPreviewHtml(){
+  return `
+    <div class="side-panel">
+      <div class="eyebrow" style="margin-bottom:14px">HIV RESEARCH MAP</div>
+      <div class="hivmap-preview-pipeline">
+        ${HIV_STAGES.map((s,i) => `<span class="mini-stage ${i===0?'active':''}">${i+1}. ${s.name}</span>`).join('')}
+      </div>
+      <p style="color:var(--text-dim); font-size:12.5px; line-height:1.6; margin-bottom:14px">Ciclo de vida do HIV-1 em ${HIV_STAGES.length} etapas — cada uma com alvos terapêuticos e nível de evidência associado.</p>
+      <button class="see-more" data-nav="hivmap">Abrir mapa completo →</button>
+    </div>
+  `;
+}
+
+function rankingPreviewHtml(){
+  const top = STRATEGIES.slice(0,5);
+  return `
+    <div class="side-panel">
+      <div class="eyebrow" style="margin-bottom:14px">STRATEGY RANKING</div>
+      <div class="preview-list">
+        ${top.map((s,i) => `
+          <div class="preview-row">
+            <span style="color:var(--text-dim)">${String(i+1).padStart(2,'0')} · ${s.name}</span>
+            <span class="ev-badge ev-${s.evidence.replace('E','')}">${s.evidence}</span>
+          </div>
+        `).join('')}
+      </div>
+      <button class="see-more" data-nav="ranking">Ver ranking completo →</button>
+    </div>
+  `;
+}
+
+function chatPanelHtml(){
+  return `
+    <div class="chat-panel">
+      <div class="chat-log" id="chatLog">
+        ${state.chatHistory.map(m => `
+          <div class="msg ${m.who}">
+            ${m.who==='jarvis' ? '<span class="who">JARVIS</span>' : ''}
+            ${escapeHtml(m.text)}
+          </div>
+        `).join('')}
+      </div>
+      <div class="chat-input-row">
+        <button class="icon-btn" id="btnClip" aria-label="Anexar" title="Anexar (Camada 2)">${ICONS.clip}</button>
+        <button class="icon-btn" id="btnMic" aria-label="Microfone" title="Módulo de voz (Camada 2)">${ICONS.mic}</button>
+        <textarea id="chatInput" rows="1" placeholder="Ask JARVIS anything about your research…" aria-label="Mensagem para JARVIS"></textarea>
+        <button class="send-btn" id="btnSend" aria-label="Enviar">${ICONS.send}</button>
+      </div>
+    </div>
+  `;
+}
+
+function pageResearch(){
+  return `
+    <div class="page-head">
+      <h1>Research</h1>
+      <p>Pesquisas em andamento. Estrutura pronta para receber projetos reais — nenhum projeto ativo nesta camada.</p>
+    </div>
+    <div class="card empty-state">
+      <div class="ic">⌁</div>
+      <p>Nenhuma pesquisa ativa ainda. Quando o mecanismo de pesquisa científica for conectado (Camada 2), os projetos aparecerão aqui, ligados a HIV Map, Sources e Evidence.</p>
+    </div>
+  `;
+}
+
+function pageHivMap(){
+  const stage = HIV_STAGES.find(s=>s.id===state.activeHivStage) || HIV_STAGES[0];
+  return `
+    <div class="page-head">
+      <h1>HIV Research Map</h1>
+      <p>Ciclo de vida do HIV-1. Toque em uma etapa para ver mecanismo, alvos terapêuticos e nível de evidência.</p>
+    </div>
+    <div class="hivmap-wrap">
+      <div class="hivmap-pipeline">
+        ${HIV_STAGES.map((s,i) => `
+          ${i>0 ? '<div class="hivmap-connector"></div>' : ''}
+          <button class="hivmap-stage ${s.id===stage.id?'active':''}" data-hivstage="${s.id}">
+            <span class="n mono">${String(i+1).padStart(2,'0')}</span>
+            <span class="label">${s.name}</span>
+          </button>
+        `).join('')}
+      </div>
+      <div class="hivmap-detail">
+        <span class="eyebrow">ETAPA ${String(HIV_STAGES.indexOf(stage)+1).padStart(2,'0')} / ${HIV_STAGES.length}</span>
+        <h2>${stage.name}</h2>
+        <p class="desc">${stage.desc}</p>
+        <div class="section-label" style="margin-top:0">Alvos potenciais</div>
+        <p style="color:var(--text-dim); font-size:13px; margin-bottom:18px">${stage.targets}</p>
+        <div class="section-label">Nível de evidência do mecanismo</div>
+        <span class="ev-badge ev-${stage.evidence.replace('E','')}">${stage.evidence}</span>
+        <span style="color:var(--text-faint); font-size:12px; margin-left:8px">${EVIDENCE_LEVELS.find(e=>e.code===stage.evidence)?.name || ''}</span>
+      </div>
+    </div>
+  `;
+}
+
+function pageStrategies(){
+  return `
+    <div class="page-head">
+      <h1>Strategies</h1>
+      <p>Estratégias terapêuticas em estudo. Potencial e confiança ainda não estão preenchidos — placeholders até o banco de evidências ser conectado.</p>
+    </div>
+    <div class="grid cols-3">
+      ${STRATEGIES.map(s => `
+        <div class="card strategy-card">
+          <div class="head">
+            <div class="title display">${s.name}</div>
+            <span class="ev-badge ev-${s.evidence.replace('E','')}">${s.evidence}</span>
+          </div>
+          <div class="mech">${s.mechanism}</div>
+          <div class="kv-row"><span class="k">Stage</span><span class="v">${s.stage}</span></div>
+          <div class="kv-row"><span class="k">Potential</span><span class="v">${s.potential}</span></div>
+          <div class="kv-row"><span class="k">Confidence</span><span class="v">${s.confidence}</span></div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+function pageRanking(){
+  return `
+    <div class="page-head">
+      <h1>Scientific Strategy Ranking</h1>
+      <p>Nenhuma probabilidade é inventada aqui — até o banco de evidências ser conectado, tudo aparece como placeholder.</p>
+    </div>
+    <div class="rank-table">
+      <table>
+        <thead><tr><th>Rank</th><th>Strategy</th><th>Evidence</th><th>Potential</th><th>Confidence</th></tr></thead>
+        <tbody>
+          ${STRATEGIES.map((s,i) => `
+            <tr>
+              <td class="mono">${String(i+1).padStart(2,'0')}</td>
+              <td style="font-weight:500">${s.name}</td>
+              <td><span class="ev-badge ev-${s.evidence.replace('E','')}">${s.evidence}</span></td>
+              <td class="mono" style="color:var(--text-faint)">PLACEHOLDER</td>
+              <td class="mono" style="color:var(--text-faint)">PLACEHOLDER</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function pageSimulations(){
+  return `
+    <div class="page-head">
+      <h1>Simulation Center</h1>
+      <p>Interface preparada para simulações computacionais. Nenhuma simulação real é executada nesta camada.</p>
+    </div>
+    <div class="grid cols-2">
+      <div class="card">
+        <div class="section-label" style="margin-top:0">Model</div>
+        <div class="field"><select disabled><option>Selecione um modelo (Camada 2)</option></select></div>
+        <div class="section-label">Variables</div>
+        <div class="field"><input type="text" placeholder="Parâmetros do modelo — indisponível nesta camada" disabled></div>
+        <button class="btn-primary" disabled style="opacity:0.5">Run Simulation</button>
+      </div>
+      <div class="card">
+        <div class="section-label" style="margin-top:0">Results</div>
+        <div class="empty-state" style="padding:30px 10px"><p>Nenhuma simulação executada ainda.</p></div>
+        <div class="section-label">Confidence Interval</div>
+        <p class="mono" style="color:var(--text-faint); font-size:12px; margin-bottom:14px">PLACEHOLDER</p>
+        <div class="section-label">Limitations</div>
+        <p style="color:var(--text-dim); font-size:12.5px">O motor de simulação real será conectado na Camada 2.</p>
+      </div>
+    </div>
+  `;
+}
+
+function pageHypotheses(){
+  return `
+    <div class="page-head">
+      <h1>Hypothesis Engine</h1>
+      <p>Gera uma estrutura de hipótese a partir do que você descrever — não validada, apenas organizada.</p>
+    </div>
+    <div class="grid cols-2">
+      <div class="card">
+        <div class="field"><label>Research Question</label><textarea id="hqQuestion" rows="2" placeholder="ex: bloqueio duplo de correceptores reduziria o reservatório?"></textarea></div>
+        <div class="field"><label>Known Evidence</label><textarea id="hqEvidence" rows="2" placeholder="O que já se sabe sobre isso"></textarea></div>
+        <div class="field"><label>Potential Mechanisms</label><textarea id="hqMechanism" rows="2" placeholder="Mecanismo biológico proposto"></textarea></div>
+        <button class="btn-primary" id="btnGenHypothesis">Generate Hypothesis</button>
+      </div>
+      <div class="card" id="hypothesisResult">
+        <div class="empty-state" style="padding:30px 10px"><p>Preencha o formulário e gere uma hipótese estruturada.</p></div>
+      </div>
+    </div>
+  `;
+}
+
+function pageEvidence(){
+  return `
+    <div class="page-head">
+      <h1>Evidence System</h1>
+      <p>Escala usada em toda a plataforma para classificar o nível de comprovação de cada estratégia ou mecanismo.</p>
+    </div>
+    <div class="grid cols-3">
+      ${EVIDENCE_LEVELS.map(e => `
+        <div class="card">
+          <span class="ev-badge ev-${e.code.replace('E','')}" style="margin-bottom:10px">${e.code}</span>
+          <div class="title display" style="font-size:15px; margin-bottom:6px">${e.name}</div>
+          <div class="mech">${e.desc}</div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+function pageSources(){
+  return `
+    <div class="page-head">
+      <h1>Scientific Sources</h1>
+      <p>Base de fontes científicas. Metadados abaixo são demonstrativos.</p>
+    </div>
+    <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:18px">
+      ${SOURCE_FILTERS.map(f => `<span class="badge" style="cursor:default">${f}</span>`).join('')}
+    </div>
+    <div class="grid cols-2">
+      ${SOURCES.map(s => `
+        <div class="card">
+          <div class="head" style="display:flex; justify-content:space-between; gap:10px; margin-bottom:8px">
+            <span class="badge violet">${s.tag}</span>
+            <span class="ev-badge ev-${s.evidence.replace('E','')}">${s.evidence}</span>
+          </div>
+          <div class="title display" style="font-size:14.5px; margin-bottom:6px; line-height:1.4">${s.title}</div>
+          <div class="mech" style="margin-bottom:10px">${s.authors} · ${s.journal}</div>
+          <div class="kv-row"><span class="k">Year</span><span class="v">${s.year}</span></div>
+          <div class="kv-row"><span class="k">DOI</span><span class="v">PLACEHOLDER</span></div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+function pageDiscoveries(){
+  return `
+    <div class="page-head">
+      <h1>Discovery Log</h1>
+      <p>Linha do tempo de descobertas registradas — memória científica do sistema ao longo do tempo.</p>
+    </div>
+    <div class="card">
+      ${DISCOVERIES.map((d,i) => `
+        <div style="padding:16px 0; ${i>0?'border-top:1px solid var(--line)':''}">
+          <div style="display:flex; justify-content:space-between; gap:10px; margin-bottom:6px">
+            <div class="title display" style="font-size:14.5px">${d.title}</div>
+            <span class="ev-badge ev-${d.evidence.replace('E','')}">${d.evidence}</span>
+          </div>
+          <div class="mono" style="font-size:11px; color:var(--text-faint)">${d.date} · ${d.source} · Impact: ${d.impact}</div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+function pageLab(){
+  return `
+    <div class="page-head">
+      <h1>Laboratório Virtual</h1>
+      <p>Espaço reservado para simulações e ferramentas computacionais mais avançadas.</p>
+    </div>
+    <div class="card empty-state">
+      <div class="ic">${ICONS.lab}</div>
+      <p>O laboratório virtual será construído nas próximas camadas — sem experimentos, automação ou instruções operacionais nesta versão.</p>
+    </div>
+  `;
+}
+
+function pageSettings(){
+  const s = state.settings;
+  return `
+    <div class="page-head">
+      <h1>Settings</h1>
+      <p>Preferências do sistema. Alterar aqui não conecta nenhum serviço real nesta camada.</p>
+    </div>
+    <div class="card" style="max-width:560px">
+      ${toggleRow('voiceModule','Módulo de voz','Ativar entrada e saída por voz (Camada 2)', s.voiceModule)}
+      ${toggleRow('advancedMode','Modo avançado','Exibe parâmetros técnicos adicionais nas páginas', s.advancedMode)}
+      ${toggleRow('autoIndexSources','Indexação automática de fontes','Adicionar novas fontes automaticamente ao banco (Camada 2)', s.autoIndexSources)}
+      ${toggleRow('lightTheme','Tema claro','Alternar para tema claro (em breve)', s.lightTheme)}
+    </div>
+  `;
+}
+function toggleRow(key,label,desc,val){
+  return `
+    <div class="toggle-row">
+      <div><div class="t-label">${label}</div><div class="t-desc">${desc}</div></div>
+      <button class="switch ${val?'on':''}" data-toggle="${key}" role="switch" aria-checked="${val}" aria-label="${label}"></button>
+    </div>
+  `;
+}
+
+/* ---------- DRAWER (HIV stage detail on tap, reused for evidence etc.) ---------- */
+function openDrawer(eyebrow, bodyHtml){
+  document.getElementById('drawerEyebrow').textContent = eyebrow;
+  document.getElementById('drawerBody').innerHTML = bodyHtml;
+  document.getElementById('drawer').classList.add('open');
+  document.getElementById('drawerOverlay').classList.add('open');
+}
+function closeDrawer(){
+  document.getElementById('drawer').classList.remove('open');
+  document.getElementById('drawerOverlay').classList.remove('open');
+}
+
+/* ---------- CHAT (mock responses only — no real model connected) ---------- */
+const MOCK_RESPONSES = [
+  "Esta versão está operando em modo de demonstração. O motor científico real ainda será conectado.",
+  "Análise iniciada. Estou organizando as estratégias por mecanismo, nível de evidência e estágio de desenvolvimento — dados de exemplo por enquanto.",
+  "O ranking científico real será habilitado quando o banco de evidências e o mecanismo de pesquisa forem conectados.",
+  "Não tenho ainda uma base de evidências real para responder isso com precisão — esta interface está preparada para receber esse mecanismo na próxima camada.",
+];
+function sendChat(){
+  const input = document.getElementById('chatInput');
+  const text = input.value.trim();
+  if(!text) return;
+  state.chatHistory.push({who:'user', text});
+  const reply = MOCK_RESPONSES[Math.floor(Math.random()*MOCK_RESPONSES.length)];
+  state.chatHistory.push({who:'jarvis', text: reply});
+  input.value = '';
+  const log = document.getElementById('chatLog');
+  if(log){
+    log.innerHTML = state.chatHistory.map(m => `
+      <div class="msg ${m.who}">${m.who==='jarvis' ? '<span class="who">JARVIS</span>' : ''}${escapeHtml(m.text)}</div>
+    `).join('');
+    log.scrollTop = log.scrollHeight;
+  }
+}
+
+/* ---------- HYPOTHESIS ENGINE (mock structuring only) ---------- */
+function generateHypothesis(){
+  const q = document.getElementById('hqQuestion').value.trim() || '(pergunta não informada)';
+  const ev = document.getElementById('hqEvidence').value.trim() || '(evidência não informada)';
+  const mech = document.getElementById('hqMechanism').value.trim() || '(mecanismo não informado)';
+  const result = document.getElementById('hypothesisResult');
+  result.innerHTML = `
+    <span class="badge violet" style="margin-bottom:14px"><span class="dot"></span>HYPOTHESIS — NOT VALIDATED</span>
+    <div class="section-label" style="margin-top:14px">Hypothesis</div>
+    <p style="font-size:13.5px; color:var(--text-dim); margin-bottom:14px">${escapeHtml(q)}</p>
+    <div class="section-label">Biological Rationale</div>
+    <p style="font-size:13.5px; color:var(--text-dim); margin-bottom:14px">${escapeHtml(mech)}</p>
+    <div class="section-label">Existing Evidence</div>
+    <p style="font-size:13.5px; color:var(--text-dim); margin-bottom:14px">${escapeHtml(ev)}</p>
+    <div class="section-label">Unknown Variables</div>
+    <p style="font-size:13.5px; color:var(--text-faint); margin-bottom:14px">PLACEHOLDER — preenchido quando o motor de análise for conectado.</p>
+    <div class="section-label">Testable Prediction</div>
+    <p style="font-size:13.5px; color:var(--text-faint)">PLACEHOLDER</p>
+  `;
+}
+
+/* ---------- HELPERS ---------- */
+function escapeHtml(str){ const d=document.createElement('div'); d.textContent=str||''; return d.innerHTML; }
+
+/* ---------- EVENT BINDING ---------- */
+function bindPageEvents(){
+  const genBtn = document.getElementById('btnGenHypothesis');
+  if(genBtn) genBtn.addEventListener('click', generateHypothesis);
+
+  const sendBtn = document.getElementById('btnSend');
+  if(sendBtn) sendBtn.addEventListener('click', sendChat);
+  const chatInput = document.getElementById('chatInput');
+  if(chatInput) chatInput.addEventListener('keydown', e => {
+    if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); sendChat(); }
+  });
+
+  document.querySelectorAll('[data-hivstage]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      state.activeHivStage = btn.dataset.hivstage;
+      renderContent();
+    });
+  });
+}
+
+/* Global delegated events (sidebar, drawer, toggles) */
+document.addEventListener('click', (e) => {
+  const navBtn = e.target.closest('[data-nav]');
+  if(navBtn){
+    navigate(navBtn.dataset.nav);
+    closeMobileSidebar();
+    return;
+  }
+
+  if(e.target.closest('#sbMobileToggle')){ toggleMobileSidebar(); return; }
+  if(e.target.closest('#sidebarOverlay')){ closeMobileSidebar(); return; }
+
+  if(e.target.closest('#sbToggle')){ state.sidebarCollapsed = !state.sidebarCollapsed; renderSidebar(); return; }
+
+  if(e.target.closest('#drawerClose') || e.target.closest('#drawerOverlay')){ closeDrawer(); return; }
+
+  const toggleBtn = e.target.closest('[data-toggle]');
+  if(toggleBtn){
+    const key = toggleBtn.dataset.toggle;
+    state.settings[key] = !state.settings[key];
+    toggleBtn.classList.toggle('on', state.settings[key]);
+    toggleBtn.setAttribute('aria-checked', state.settings[key]);
+    return;
+  }
+});
+
+function toggleMobileSidebar(){
+  document.getElementById('sidebar').classList.toggle('mobile-open');
+  document.getElementById('sidebarOverlay').classList.toggle('open');
+}
+function closeMobileSidebar(){
+  document.getElementById('sidebar').classList.remove('mobile-open');
+  document.getElementById('sidebarOverlay').classList.remove('open');
+}
+/* Keep the drawer/sidebar state sane if the viewport crosses the mobile breakpoint (e.g. iPad rotation, or a resizable browser window) */
+window.addEventListener('resize', () => { if(window.innerWidth >= 768) closeMobileSidebar(); });
+
+/* ---------- INIT ---------- */
+navigate('home');
+</script>
+</body>
+</html>
