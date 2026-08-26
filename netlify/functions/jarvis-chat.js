@@ -54,6 +54,7 @@ exports.handler = async (event) => {
 `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`,
 
 
+
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
