@@ -836,8 +836,22 @@ function pageSources(){
   return `
     <div class="page-head">
       <h1>Scientific Sources</h1>
-      <p>Base de fontes científicas. Metadados abaixo são demonstrativos.</p>
+      <p>Busca real no PubMed via backend (Netlify Function) — sem o bloqueio de CORS que acontecia direto no navegador.</p>
     </div>
+
+    <div class="card" style="margin-bottom:22px">
+      <div class="field" style="margin-bottom:10px">
+        <label>Live search — PubMed</label>
+        <div style="display:flex; gap:8px">
+          <input type="text" id="srcQuery" placeholder="ex: HIV latency reversal" value="HIV latency reversal" style="flex:1">
+          <button class="btn-primary" id="srcGo">Buscar</button>
+        </div>
+      </div>
+      <div class="eyebrow" id="srcStatus" style="min-height:16px"></div>
+      <div class="grid cols-2" id="srcLiveResults" style="margin-top:14px"></div>
+    </div>
+
+    <div class="section-label">Exemplos demonstrativos</div>
     <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:18px">
       ${SOURCE_FILTERS.map(f => `<span class="badge" style="cursor:default">${f}</span>`).join('')}
     </div>
@@ -856,6 +870,40 @@ function pageSources(){
       `).join('')}
     </div>
   `;
+}
+
+async function runSourceSearch(){
+  const q = document.getElementById('srcQuery').value.trim();
+  const statusEl = document.getElementById('srcStatus');
+  const resultsEl = document.getElementById('srcLiveResults');
+  if(!q) return;
+
+  statusEl.textContent = 'CONSULTANDO O PUBMED...';
+  resultsEl.innerHTML = '';
+
+  try {
+    const res = await fetch(`/.netlify/functions/pubmed-search?q=${encodeURIComponent(q)}&max=10`);
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error || 'Falha na busca');
+
+    if(!data.results || data.results.length === 0){
+      statusEl.textContent = 'NENHUM RESULTADO ENCONTRADO.';
+      return;
+    }
+
+    statusEl.textContent = `${data.results.length} RESULTADO(S) — FONTE: PUBMED / NCBI E-UTILITIES`;
+    resultsEl.innerHTML = data.results.map(a => `
+      <div class="card">
+        <div class="title display" style="font-size:14.5px; margin-bottom:6px; line-height:1.4">${escapeHtml(a.title)}</div>
+        <div class="mech" style="margin-bottom:10px">${escapeHtml(a.journal)} · ${escapeHtml(a.year)}</div>
+        <div class="kv-row"><span class="k">PMID</span><span class="v">${a.pmid}</span></div>
+        <div class="kv-row"><span class="k">Link</span><span class="v"><a href="https://pubmed.ncbi.nlm.nih.gov/${a.pmid}/" target="_blank" rel="noopener">pubmed.ncbi.nlm.nih.gov ↗</a></span></div>
+      </div>
+    `).join('');
+  } catch (err) {
+    statusEl.textContent = 'NÃO FOI POSSÍVEL COMPLETAR A BUSCA (veja detalhes abaixo).';
+    resultsEl.innerHTML = `<div class="card" style="border-left:2px solid var(--coral)"><p style="color:var(--text-dim); font-size:13px">${escapeHtml(String(err.message || err))}. Isso costuma acontecer se a Netlify Function ainda não foi publicada — confirme se o arquivo <span class="mono">netlify/functions/pubmed-search.js</span> está no repositório.</p></div>`;
+  }
 }
 
 function pageDiscoveries(){
@@ -986,6 +1034,11 @@ function bindPageEvents(){
   if(chatInput) chatInput.addEventListener('keydown', e => {
     if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); sendChat(); }
   });
+
+  const srcGo = document.getElementById('srcGo');
+  if(srcGo) srcGo.addEventListener('click', runSourceSearch);
+  const srcQuery = document.getElementById('srcQuery');
+  if(srcQuery) srcQuery.addEventListener('keydown', e => { if(e.key==='Enter') runSourceSearch(); });
 
   document.querySelectorAll('[data-hivstage]').forEach(btn => {
     btn.addEventListener('click', () => {
