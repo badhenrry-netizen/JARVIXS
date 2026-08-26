@@ -1000,8 +1000,9 @@ async function sendChat(){
   try {
     const history = state.chatHistory
       .filter(m => !m.pending)
-      const history = state.chatHistory
-  .filter(m => !m.pending && m.text)
+      .slice(0, -1) // exclude the user message we're about to resend explicitly
+.map(m => ({ role: m.who==='user' ? 'user' : 'assistant', content: m.text }));
+
   .slice(0, -1)
   .map(m => ({
     role: m.who === 'user' ? 'user' : 'assistant',
