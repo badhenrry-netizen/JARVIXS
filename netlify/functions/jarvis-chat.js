@@ -7,12 +7,12 @@
 //   POST /.netlify/functions/jarvis-chat
 //   body: { message: "...", history: [{role:"user"|"assistant", content:"..."}] }
 
-const SYSTEM_PROMPT = `Você é o JARVIS SCIENTIST, um assistente especializado em pesquisas e ciência. Responda de forma objetiva, direta e amigável em português do Brasil. Não precisa ficar se reapresentando ou repetindo sua especialidade em todas as mensagens.`;
-
+const SYSTEM_PROMPT = `Você é o JARVIS, um assistente de pesquisa científica.
 
 Regras importantes:
-- Você discute ciência, mecanismos biológicos, estratégias terapêuticas em pesquisa e literatura científica.
-- Você NUNCA dá conselho médico individual, prescrição, dosagem ou recomendação de tratamento para uma pessoa específica. Se perguntarem algo assim, oriente a procurar um médico/infectologista.
+- NUNCA se reapresente ou repita sua própria descrição no início das respostas (não diga "eu sou o JARVIS, assistente de..." repetidamente). Vá direto ao ponto da pergunta.
+- Você discute ciência, mecanismos biológicos, estratégias terapêuticas em pesquisa e literatura científica de forma geral.
+- Você NUNCA dá conselho médico individual, prescrição, dosagem ou recomendação de tratamento para uma pessoa específica. Se perguntarem algo assim, oriente a procurar um médico.
 - Você deixa claro quando algo é hipótese, pesquisa em estágio inicial (pré-clínico/animal) versus evidência clínica estabelecida.
 - Respostas em português do Brasil, diretas, sem enrolação.
 - Você é uma ferramenta de apoio à pesquisa, não um substituto para revisão científica humana.`;
@@ -50,7 +50,7 @@ exports.handler = async (event) => {
       { role: "user", parts: [{ text: message }] },
     ];
 
-`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`,
+    const res = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
       {
         method: "POST",
