@@ -392,8 +392,6 @@
 
 <script>
 /* =========================================================================
-let chatHistory = [];
-
    JARVIS SCIENTIST — CAMADA 1
    Interface + arquitetura + dados mock. Nenhum mecanismo científico real.
    Vanilla JS SPA (sem build step) para rodar direto no Safari do iPad.
@@ -1001,14 +999,7 @@ async function sendChat(){
     const history = state.chatHistory
       .filter(m => !m.pending)
       .slice(0, -1) // exclude the user message we're about to resend explicitly
-.map(m => ({ role: m.who==='user' ? 'user' : 'assistant', content: m.text }));
-
-  .slice(0, -1)
-  .map(m => ({
-    role: m.who === 'user' ? 'user' : 'assistant',
-    content: m.text
-  }));
-
+      .map(m => ({ role: m.who==='user' ? 'user' : 'assistant', content: m.text }));
 
     const res = await fetch('/.netlify/functions/jarvis-chat', {
       method: 'POST',
