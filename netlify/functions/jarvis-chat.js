@@ -1,15 +1,6 @@
 // netlify/functions/jarvis-chat.js
-//
-// Netlify Function — conecta o chat do JARVIS ao Gemini (Google), que tem
-// cota gratuita. A chave de API fica só aqui no servidor, nunca no frontend.
-//
-// Chamada pelo frontend como:
-//   POST /.netlify/functions/jarvis-chat
-//   body: { message: "...", history: [{role:"user"|"assistant", content:"..."}] }
 
-const SYSTEM_PROMPT = `Você é o JARVIS SCIENTIST, um assistente especializado em pesquisas e ciência. Responda de forma objetiva, direta e amigável em português do Brasil. Não precisa ficar se reapresentando ou repetindo sua especialidade em todas as mensagens.`;
-
-
+const SYSTEM_PROMPT = `Você é o JARVIS SCIENTIST, um assistente de pesquisa científica focado em HIV-1.
 
 Regras importantes:
 - Você discute ciência, mecanismos biológicos, estratégias terapêuticas em pesquisa e literatura científica.
@@ -31,8 +22,9 @@ exports.handler = async (event) => {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     return {
-      statusCode: 500, headers,
-      body: JSON.stringify({ error: "GEMINI_API_KEY não configurada no Netlify (Site configuration → Environment variables)." }),
+      statusCode: 500,
+      headers,
+      body: JSON.stringify({ error: "GEMINI_API_KEY não configurada no Netlify." }),
     };
   }
 
@@ -44,19 +36,15 @@ exports.handler = async (event) => {
 
     const cleanHistory = Array.isArray(history) ? history.slice(-10) : [];
     const contents = [
-      ...cleanHistory.map(m => ({
+      ...cleanHistory.map((m) => ({
         role: m.role === "assistant" ? "model" : "user",
         parts: [{ text: m.content }],
       })),
       { role: "user", parts: [{ text: message }] },
     ];
-`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
 
     const res = await fetch(
-`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`,
-
-
-
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -72,7 +60,7 @@ exports.handler = async (event) => {
       throw new Error(data.error?.message || `Gemini respondeu ${res.status}`);
     }
 
-    const reply = data.candidates?.[0]?.content?.parts?.map(p => p.text).join("\n") || "(resposta vazia)";
+    const reply = data.candidates?.[0]?.content?.parts?.map((p) => p.text).join("\n") || "(resposta vazia)";
     return { statusCode: 200, headers, body: JSON.stringify({ reply }) };
   } catch (err) {
     return { statusCode: 500, headers, body: JSON.stringify({ error: String(err.message || err) }) };
