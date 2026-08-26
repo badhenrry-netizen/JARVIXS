@@ -7,7 +7,8 @@
 //   POST /.netlify/functions/jarvis-chat
 //   body: { message: "...", history: [{role:"user"|"assistant", content:"..."}] }
 
-const SYSTEM_PROMPT = `Você é o JARVIS SCIENTIST, um assistente de pesquisa científica focado em HIV-1.
+const SYSTEM_PROMPT = `Você é o JARVIS SCIENTIST, um assistente especializado em pesquisas e ciência. Responda de forma objetiva, direta e amigável em português do Brasil. Não precisa ficar se reapresentando ou repetindo sua especialidade em todas as mensagens.`;
+
 
 Regras importantes:
 - Você discute ciência, mecanismos biológicos, estratégias terapêuticas em pesquisa e literatura científica.
@@ -49,7 +50,8 @@ exports.handler = async (event) => {
       { role: "user", parts: [{ text: message }] },
     ];
 
-    const res = await fetch(
+`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`,
+
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
       {
         method: "POST",
