@@ -982,21 +982,50 @@ const MOCK_RESPONSES = [
   "O ranking científico real será habilitado quando o banco de evidências e o mecanismo de pesquisa forem conectados.",
   "Não tenho ainda uma base de evidências real para responder isso com precisão — esta interface está preparada para receber esse mecanismo na próxima camada.",
 ];
-function sendChat(){
+async function sendChat(){
   const input = document.getElementById('chatInput');
   const text = input.value.trim();
   if(!text) return;
+
   state.chatHistory.push({who:'user', text});
-  const reply = MOCK_RESPONSES[Math.floor(Math.random()*MOCK_RESPONSES.length)];
-  state.chatHistory.push({who:'jarvis', text: reply});
   input.value = '';
-  const log = document.getElementById('chatLog');
-  if(log){
-    log.innerHTML = state.chatHistory.map(m => `
-      <div class="msg ${m.who}">${m.who==='jarvis' ? '<span class="who">JARVIS</span>' : ''}${escapeHtml(m.text)}</div>
-    `).join('');
-    log.scrollTop = log.scrollHeight;
+  renderChatLog();
+
+  // placeholder "thinking" message while we wait for the real model
+  state.chatHistory.push({who:'jarvis', text: '···', pending:true});
+  renderChatLog();
+
+  try {
+    const history = state.chatHistory
+      .filter(m => !m.pending)
+      .slice(0, -1) // exclude the user message we're about to resend explicitly
+      .map(m => ({ role: m.who==='user' ? 'user' : 'assistant', content: m.text }));
+
+    const res = await fetch('/.netlify/functions/jarvis-chat', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ message: text, history }),
+    });
+    const data = await res.json();
+
+    state.chatHistory = state.chatHistory.filter(m => !m.pending);
+    if(!res.ok) throw new Error(data.error || 'Falha na resposta');
+    state.chatHistory.push({who:'jarvis', text: data.reply});
+  } catch (err) {
+    state.chatHistory = state.chatHistory.filter(m => !m.pending);
+    const fallback = MOCK_RESPONSES[Math.floor(Math.random()*MOCK_RESPONSES.length)];
+    state.chatHistory.push({who:'jarvis', text: `${fallback}\n\n(modo demonstração — motor de IA real ainda não respondeu: ${String(err.message||err)})`});
   }
+  renderChatLog();
+}
+
+function renderChatLog(){
+  const log = document.getElementById('chatLog');
+  if(!log) return;
+  log.innerHTML = state.chatHistory.map(m => `
+    <div class="msg ${m.who}">${m.who==='jarvis' ? '<span class="who">JARVIS</span>' : ''}${escapeHtml(m.text)}</div>
+  `).join('');
+  log.scrollTop = log.scrollHeight;
 }
 
 /* ---------- HYPOTHESIS ENGINE (mock structuring only) ---------- */
